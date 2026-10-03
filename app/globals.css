@@ -127,3 +127,506 @@
     @apply font-sans;
     }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   CHESS PUZZLE DUEL — Matiks-style dark competitive design
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  --duel-bg: #141414;
+  --duel-surface: #1e1e1e;
+  --duel-surface-light: #2a2a2a;
+  --duel-green: #00c96b;
+  --duel-green-dark: #155c3d;
+  --duel-green-glow: rgba(0, 201, 107, 0.3);
+  --duel-cyan: #00cfff;
+  --duel-text: #f1f1f1;
+  --duel-text-dim: #8a8a8a;
+  --duel-text-muted: #5a5a5a;
+  --duel-red: #ff4d4d;
+  --duel-red-glow: rgba(255, 77, 77, 0.25);
+}
+
+/* ── Main Container ────────────────────────────────────────── */
+.chess-duel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100dvh;
+  background: var(--duel-bg);
+  padding: 20px 16px;
+  position: relative;
+  overflow-x: hidden;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .chess-duel {
+    padding: 32px 24px;
+    gap: 24px;
+  }
+}
+
+/* ── Duel Header ───────────────────────────────────────────── */
+.duel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 600px;
+  gap: 8px;
+}
+
+@media (max-width: 479px) {
+  .duel-header {
+    gap: 4px;
+  }
+}
+
+/* ── Player Card ───────────────────────────────────────────── */
+.player-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.player-card-right {
+  flex-direction: row-reverse;
+}
+
+.player-card-right .player-info {
+  text-align: right;
+}
+
+.player-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--duel-green-dark), var(--duel-green));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+@media (max-width: 479px) {
+  .player-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 10px;
+  }
+}
+
+.player-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.player-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--duel-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
+@media (max-width: 479px) {
+  .player-name {
+    font-size: 11px;
+    max-width: 55px;
+  }
+}
+
+.player-rating {
+  font-size: 11px;
+  color: var(--duel-text-dim);
+  font-weight: 500;
+}
+
+@media (max-width: 479px) {
+  .player-rating {
+    font-size: 10px;
+  }
+}
+
+.player-score-pill {
+  background: var(--duel-surface-light);
+  border-radius: 12px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--duel-green);
+  flex-shrink: 0;
+}
+
+@media (max-width: 479px) {
+  .player-score-pill {
+    padding: 2px 7px;
+    font-size: 10px;
+  }
+}
+
+/* ── Duel Timer ────────────────────────────────────────────── */
+.duel-timer {
+  background: var(--duel-surface);
+  border-radius: 16px;
+  padding: 8px 20px;
+  border: 1px solid rgba(0, 207, 255, 0.15);
+  flex-shrink: 0;
+}
+
+@media (max-width: 479px) {
+  .duel-timer {
+    padding: 6px 12px;
+    border-radius: 12px;
+  }
+}
+
+.duel-timer-text {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--duel-cyan);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+}
+
+@media (max-width: 479px) {
+  .duel-timer-text {
+    font-size: 18px;
+  }
+}
+
+@media (min-width: 768px) {
+  .duel-timer-text {
+    font-size: 28px;
+  }
+}
+
+/* ── Puzzle Prompt ─────────────────────────────────────────── */
+.puzzle-prompt {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--duel-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+@media (max-width: 479px) {
+  .puzzle-prompt {
+    font-size: 12px;
+    letter-spacing: 1.5px;
+  }
+}
+
+/* ── Chess Board Container ─────────────────────────────────── */
+.chess-board-container {
+  border-radius: 12px;
+  position: relative;
+}
+
+/* Shake animation for incorrect moves */
+.board-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 50%, 90% { transform: translateX(-4px); }
+  30%, 70% { transform: translateX(4px); }
+}
+
+/* Green glow for correct moves */
+.board-glow {
+  animation: glow-pulse 0.8s ease-out;
+}
+
+@keyframes glow-pulse {
+  0% { box-shadow: 0 0 0 0 var(--duel-green-glow); }
+  50% { box-shadow: 0 0 30px 10px var(--duel-green-glow); }
+  100% { box-shadow: 0 0 0 0 var(--duel-green-glow); }
+}
+
+/* ── Duel Controls ─────────────────────────────────────────── */
+.duel-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.duel-control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--duel-surface);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 10px 14px;
+  color: var(--duel-text-dim);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.duel-control-btn:hover:not(:disabled) {
+  background: var(--duel-surface-light);
+  color: var(--duel-text);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.duel-control-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.duel-control-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.duel-control-reset {
+  padding: 10px 20px;
+  background: var(--duel-surface-light);
+}
+
+@media (max-width: 479px) {
+  .duel-control-btn {
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+  }
+
+  .duel-control-reset {
+    padding: 8px 14px;
+  }
+}
+
+/* ── Puzzle Meta ────────────────────────────────────────────── */
+.puzzle-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.puzzle-meta-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--duel-green);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: rgba(0, 201, 107, 0.1);
+  border-radius: 8px;
+  padding: 4px 10px;
+}
+
+.puzzle-meta-divider {
+  color: var(--duel-text-muted);
+  font-size: 10px;
+}
+
+.puzzle-meta-difficulty {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--duel-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+@media (max-width: 479px) {
+  .puzzle-meta-tag,
+  .puzzle-meta-difficulty {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+}
+
+/* ── Countdown Overlay ─────────────────────────────────────── */
+.countdown-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 20, 20, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 50;
+}
+
+.countdown-text {
+  font-size: 96px;
+  font-weight: 800;
+  color: var(--duel-text);
+  user-select: none;
+}
+
+.countdown-go {
+  color: var(--duel-green);
+  font-size: 72px;
+  text-transform: uppercase;
+  letter-spacing: 8px;
+}
+
+@media (max-width: 479px) {
+  .countdown-text {
+    font-size: 72px;
+  }
+  .countdown-go {
+    font-size: 56px;
+    letter-spacing: 4px;
+  }
+}
+
+/* ── Result Overlay ────────────────────────────────────────── */
+.duel-result-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 20, 20, 0.92);
+  backdrop-filter: blur(12px);
+  z-index: 50;
+  padding: 16px;
+}
+
+.duel-result-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  max-width: 400px;
+  width: 100%;
+}
+
+.duel-result-title {
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+
+.result-win {
+  color: var(--duel-green);
+  text-shadow: 0 0 40px var(--duel-green-glow);
+}
+
+.result-loss {
+  color: var(--duel-red);
+  text-shadow: 0 0 40px var(--duel-red-glow);
+}
+
+.duel-result-score {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--duel-green);
+  font-variant-numeric: tabular-nums;
+}
+
+.duel-result-times {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: var(--duel-surface);
+  border-radius: 16px;
+  padding: 20px 32px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  width: 100%;
+  max-width: 280px;
+}
+
+.duel-result-time-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.duel-result-time-label {
+  font-size: 13px;
+  color: var(--duel-text-dim);
+  font-weight: 500;
+}
+
+.duel-result-time-value {
+  font-size: 15px;
+  color: var(--duel-text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.duel-result-vs {
+  font-size: 11px;
+  color: var(--duel-text-muted);
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.duel-result-diff {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.result-diff-win {
+  color: var(--duel-green);
+}
+
+.result-diff-loss {
+  color: var(--duel-red);
+}
+
+.duel-result-next {
+  background: var(--duel-green);
+  color: #000;
+  border: none;
+  border-radius: 14px;
+  padding: 14px 36px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.duel-result-next:hover {
+  background: #00e07a;
+  box-shadow: 0 4px 20px var(--duel-green-glow);
+}
+
+.duel-result-next:active {
+  transform: scale(0.96);
+}
+
+@media (max-width: 479px) {
+  .duel-result-title {
+    font-size: 32px;
+    letter-spacing: 3px;
+  }
+
+  .duel-result-score {
+    font-size: 36px;
+  }
+
+  .duel-result-times {
+    padding: 16px 20px;
+  }
+
+  .duel-result-next {
+    padding: 12px 28px;
+    font-size: 13px;
+  }
+}
