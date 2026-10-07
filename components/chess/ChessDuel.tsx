@@ -10,7 +10,10 @@ import {
   createGameFromPuzzle,
   isSolutionMove,
 } from "@/lib/chess/game";
-import { getDuelResult } from "@/lib/chess/scoring";
+import {
+  ROUND_TIME_LIMIT,
+  getBlitzDuelResult,
+} from "@/lib/chess/scoring";
 import DuelHeader from "./DuelHeader";
 import ChessBoard from "./ChessBoard";
 import DuelControls from "./DuelControls";
@@ -21,7 +24,7 @@ import DuelResult from "./DuelResult";
 export default function ChessDuel() {
   // ── Puzzle state ──────────────────────────────────────────
   const [puzzleIndex, setPuzzleIndex] = useState(0);
-  const puzzle = chessPuzzles[puzzleIndex];
+  const puzzle = chessPuzzles[puzzleIndex % chessPuzzles.length];
 
   // ── Game engine ───────────────────────────────────────────
   const [game, setGame] = useState<Chess>(() => createGameFromPuzzle(puzzle));
@@ -34,6 +37,11 @@ export default function ChessDuel() {
   const [timerRunning, setTimerRunning] = useState(false);
   const [frozenTime, setFrozenTime] = useState<number | undefined>(0);
   const elapsedRef = useRef(0);
+
+  // ── Blitz tracking ────────────────────────────────────────
+  const [puzzlesSolved, setPuzzlesSolved] = useState(0);
+  const solvedPuzzlesRef = useRef<typeof chessPuzzles>([]);
+  const isAdvancingRef = useRef(false);
 
   // ── Move feedback ─────────────────────────────────────────
   const [moveStatus, setMoveStatus] = useState<
@@ -51,14 +59,14 @@ export default function ChessDuel() {
   const [player1, setPlayer1] = useState<PlayerData>({
     name: "dhwa...",
     rating: 1066,
-    score: 4,
+    score: 0,
   });
 
-  const player2: PlayerData = {
+  const [player2, setPlayer2] = useState<PlayerData>({
     name: "nandi...",
     rating: 1090,
     score: 0,
-  };
+  });
 
   // ── Board sizing ──────────────────────────────────────────
   const [boardWidth, setBoardWidth] = useState(520);
@@ -68,7 +76,7 @@ export default function ChessDuel() {
     const updateSize = () => {
       const vw = window.innerWidth;
       if (vw < 480) {
-        setBoardWidth(vw - 32); // 16px margins each side
+        setBoardWidth(vw - 32);
       } else if (vw < 640) {
         setBoardWidth(Math.min(vw - 32, 420));
       } else if (vw < 768) {
@@ -83,41 +91,42 @@ export default function ChessDuel() {
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
-  // ── Auto-start countdown on mount / new puzzle ────────────
+  // ── Auto-start countdown on mount ─────────────────────────
   useEffect(() => {
     setGameState("COUNTDOWN");
-  }, [puzzleIndex]);
+  }, []);
 
   // ── Timer tick handler ────────────────────────────────────
   const handleTick = useCallback((elapsed: number) => {
     elapsedRef.current = elapsed;
   }, []);
 
-  // ── Timeout detection ─────────────────────────────────────
+  // ── Timeout detection (1 minute is up) ────────────────────
   useEffect(() => {
     if (!timerRunning) return;
 
     const checkTimeout = setInterval(() => {
-      if (elapsedRef.current >= puzzle.timeLimit) {
+      if (elapsedRef.current >= ROUND_TIME_LIMIT) {
         setTimerRunning(false);
-        setFrozenTime(puzzle.timeLimit);
+        setFrozenTime(ROUND_TIME_LIMIT);
         setGameState("TIMEOUT");
 
-        // Compute result with max time
-        const result = getDuelResult(
-          puzzle.timeLimit,
-          puzzle.opponent.solveTime,
-          puzzle.points,
-          puzzle.timeLimit,
+        const opponentSolved = 0;
+
+        // Build result
+        const result = getBlitzDuelResult(
+          solvedPuzzlesRef.current.length,
+          opponentSolved,
+          solvedPuzzlesRef.current,
         );
         setDuelResult(result);
 
-        setTimeout(() => setGameState("RESULT"), 1000);
+        setTimeout(() => setGameState("RESULT"), 800);
       }
     }, 100);
 
     return () => clearInterval(checkTimeout);
-  }, [timerRunning, puzzle]);
+  }, [timerRunning]);
 
   // ── Countdown complete ────────────────────────────────────
   const handleCountdownComplete = useCallback(() => {
@@ -127,10 +136,25 @@ export default function ChessDuel() {
     setTimerRunning(true);
   }, []);
 
+  // ── Advance to next puzzle (blitz mode) ───────────────────
+  const advanceToNextPuzzle = useCallback(() => {
+    const nextIndex = (puzzleIndex + 1) % chessPuzzles.length;
+    const nextPuzzle = chessPuzzles[nextIndex];
+    const fresh = createGameFromPuzzle(nextPuzzle);
+
+    setPuzzleIndex(nextIndex);
+    setGame(fresh);
+    setPosition(nextPuzzle.fen);
+    setMoveHistory([]);
+    setUndoStack([]);
+    setMoveStatus("idle");
+    isAdvancingRef.current = false;
+  }, [puzzleIndex]);
+
   // ── Piece drop handler ────────────────────────────────────
   const handlePieceDrop = useCallback(
     (source: string, target: string): boolean => {
-      if (gameState !== "PLAYING") return false;
+      if (gameState !== "PLAYING" || isAdvancingRef.current) return false;
 
       const gameCopy = new Chess(game.fen());
 
@@ -138,36 +162,32 @@ export default function ChessDuel() {
         const move = gameCopy.move({
           from: source,
           to: target,
-          promotion: "q", // Always promote to queen for simplicity
+          promotion: "q",
         });
 
         if (!move) return false;
 
         // Check if this move is the solution
         if (isSolutionMove(puzzle, move)) {
-          // Correct move!
+          // Correct move — flash green, increment count, auto-advance
+          isAdvancingRef.current = true;
           setGame(gameCopy);
           setPosition(gameCopy.fen());
           setMoveStatus("correct");
-          setTimerRunning(false);
-          setFrozenTime(elapsedRef.current);
-          setGameState("CORRECT");
 
-          const result = getDuelResult(
-            elapsedRef.current,
-            puzzle.opponent.solveTime,
-            puzzle.points,
-            puzzle.timeLimit,
-          );
-          setDuelResult(result);
+          // Track solved puzzle
+          const newCount = puzzlesSolved + 1;
+          setPuzzlesSolved(newCount);
+          solvedPuzzlesRef.current = [...solvedPuzzlesRef.current, puzzle];
 
-          // Update player score
-          setPlayer1((prev) => ({
-            ...prev,
-            score: prev.score + (result.won ? 1 : 0),
-          }));
+          // Update player score display
+          setPlayer1((prev) => ({ ...prev, score: newCount }));
 
-          setTimeout(() => setGameState("RESULT"), 1200);
+          // Brief green flash then auto-advance (timer keeps running!)
+          setTimeout(() => {
+            advanceToNextPuzzle();
+          }, 500);
+
           return true;
         } else {
           // Incorrect but legal move
@@ -177,16 +197,14 @@ export default function ChessDuel() {
           setUndoStack([]);
           setMoveStatus("incorrect");
 
-          // Reset feedback after animation
           setTimeout(() => setMoveStatus("idle"), 600);
           return true;
         }
       } catch {
-        // Illegal move
         return false;
       }
     },
-    [game, gameState, puzzle],
+    [game, gameState, puzzle, puzzlesSolved, advanceToNextPuzzle],
   );
 
   // ── Undo ──────────────────────────────────────────────────
@@ -216,7 +234,7 @@ export default function ChessDuel() {
     setMoveHistory((prev) => [...prev, redoFen]);
   }, [gameState, undoStack]);
 
-  // ── Reset ─────────────────────────────────────────────────
+  // ── Reset current puzzle ──────────────────────────────────
   const handleReset = useCallback(() => {
     if (gameState !== "PLAYING") return;
 
@@ -228,45 +246,52 @@ export default function ChessDuel() {
     setMoveStatus("idle");
   }, [gameState, puzzle]);
 
-  // ── Next puzzle ───────────────────────────────────────────
-  const handleNextPuzzle = useCallback(() => {
-    const nextIndex = (puzzleIndex + 1) % chessPuzzles.length;
-    setPuzzleIndex(nextIndex);
+  // ── Play again (restart full round) ───────────────────────
+  const handlePlayAgain = useCallback(() => {
+    setPuzzleIndex(0);
 
-    const nextPuzzle = chessPuzzles[nextIndex];
-    const fresh = createGameFromPuzzle(nextPuzzle);
+    const firstPuzzle = chessPuzzles[0];
+    const fresh = createGameFromPuzzle(firstPuzzle);
     setGame(fresh);
-    setPosition(nextPuzzle.fen);
+    setPosition(firstPuzzle.fen);
     setMoveHistory([]);
     setUndoStack([]);
     setMoveStatus("idle");
     setDuelResult(null);
+    setPuzzlesSolved(0);
+    solvedPuzzlesRef.current = [];
+    isAdvancingRef.current = false;
     setTimerRunning(false);
     setFrozenTime(0);
     elapsedRef.current = 0;
-    // gameState will be set to COUNTDOWN by the useEffect on puzzleIndex
-  }, [puzzleIndex]);
+    setPlayer1((prev) => ({ ...prev, score: 0 }));
+    setPlayer2((prev) => ({ ...prev, score: 0 }));
+    setGameState("COUNTDOWN");
+  }, []);
 
   // ── Render ────────────────────────────────────────────────
   const isPlaying = gameState === "PLAYING";
-  const showBoard =
-    gameState !== "IDLE" && gameState !== "RESULT";
+  const showBoard = gameState !== "IDLE" && gameState !== "RESULT";
 
   return (
     <div className="chess-duel" ref={containerRef} id="chess-duel">
-      {/* Header with players and timer */}
+      {/* Header with players and countdown timer */}
       <DuelHeader
         player1={player1}
         player2={player2}
         timerRunning={timerRunning}
         frozenTime={frozenTime}
         onTick={handleTick}
+        countdownFrom={ROUND_TIME_LIMIT}
       />
 
-      {/* Puzzle prompt */}
+      {/* Puzzle prompt + solved counter */}
       {isPlaying && (
-        <div className="puzzle-prompt" id="puzzle-prompt">
-          Find the best move
+        <div className="puzzle-prompt-area" id="puzzle-prompt">
+          <div className="puzzle-prompt">Find the best move</div>
+          <div className="puzzle-solved-counter">
+            Solved: <span className="puzzle-solved-count">{puzzlesSolved}</span>
+          </div>
         </div>
       )}
 
@@ -307,7 +332,7 @@ export default function ChessDuel() {
 
       {/* Result overlay */}
       {gameState === "RESULT" && duelResult && (
-        <DuelResult result={duelResult} onNextPuzzle={handleNextPuzzle} />
+        <DuelResult result={duelResult} onPlayAgain={handlePlayAgain} />
       )}
     </div>
   );

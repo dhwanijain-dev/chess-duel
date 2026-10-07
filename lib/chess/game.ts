@@ -6,7 +6,6 @@ export type GameState =
   | "IDLE"
   | "COUNTDOWN"
   | "PLAYING"
-  | "CORRECT"
   | "TIMEOUT"
   | "RESULT";
 
@@ -20,11 +19,11 @@ export interface PlayerData {
 
 // ── Duel Result ──────────────────────────────────────────────
 export interface DuelResultData {
-  playerTime: number;
-  opponentTime: number;
+  playerSolved: number;
+  opponentSolved: number;
   won: boolean;
-  timeDifference: number;
-  scoreGained: number;
+  difference: number;
+  totalPoints: number;
 }
 
 // ── Move helpers ─────────────────────────────────────────────

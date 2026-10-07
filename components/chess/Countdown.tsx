@@ -1,47 +1,45 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect } from "react";
+import { motion } from "framer-motion";
 
 interface CountdownProps {
   onComplete: () => void;
 }
 
-const countdownItems = ["3", "2", "1", "GO"];
-
 export default function Countdown({ onComplete }: CountdownProps) {
-  const [index, setIndex] = useState(0);
-
   useEffect(() => {
-    if (index < countdownItems.length) {
-      const timer = setTimeout(
-        () => {
-          setIndex((prev) => prev + 1);
-        },
-        index === countdownItems.length - 1 ? 600 : 800,
-      );
-      return () => clearTimeout(timer);
-    } else {
+    // Keep the loader visible for approximately 3 seconds
+    const timer = setTimeout(() => {
       onComplete();
-    }
-  }, [index, onComplete]);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [onComplete]);
 
   return (
     <div className="countdown-overlay">
-      <AnimatePresence mode="wait">
-        {index < countdownItems.length && (
-          <motion.div
-            key={countdownItems[index]}
-            initial={{ scale: 0.3, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 1.8, opacity: 0 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
-            className={`countdown-text ${countdownItems[index] === "GO" ? "countdown-go" : ""}`}
-          >
-            {countdownItems[index]}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div className="opponent-loader">
+        {/* Rotating rectangular scanner */}
+        <motion.div
+          className="scanner-beam"
+          animate={{ rotate: 360 }}
+          transition={{
+            duration: 2.4,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+        />
+        <img src="logo.png" alt="Opponent Avatar" style={{height:"50px"}}/>
+        {/* Outer circle - 240px */}
+        <div className="radar-circle radar-outer" />
+
+        {/* Middle circle - 160px */}
+        <div className="radar-circle radar-middle" />
+
+        {/* Smallest circle - 80px */}
+        <div className="radar-circle radar-inner" />
+      </div>
     </div>
   );
 }

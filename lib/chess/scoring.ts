@@ -1,39 +1,53 @@
+import type { ChessPuzzle } from "@/data/chessPuzzles";
 import type { DuelResultData } from "./game";
 
+/** Total round duration in seconds */
+export const ROUND_TIME_LIMIT = 60;
+
 /**
- * Calculate the score for a puzzle solve.
- *
- * Formula:
- *   base points + speed bonus
- *   speed bonus = max(0, floor((timeLimit - playerTime) * 5))
+ * Calculate total points earned from solving multiple puzzles.
  */
-export function calculateScore(
-  basePoints: number,
-  timeLimit: number,
-  playerTime: number,
+export function calculateTotalPoints(
+  solvedPuzzles: ChessPuzzle[],
 ): number {
-  const speedBonus = Math.max(0, Math.floor((timeLimit - playerTime) * 5));
-  return basePoints + speedBonus;
+  return solvedPuzzles.reduce((sum, p) => sum + p.points, 0);
 }
 
 /**
- * Determine the duel result by comparing player and opponent times.
+ * Simulate how many puzzles the opponent solves within the time limit
+ * by summing their individual solve times until they exceed the limit.
  */
-export function getDuelResult(
-  playerTime: number,
-  opponentTime: number,
-  basePoints: number,
-  timeLimit: number,
+export function simulateOpponentSolved(
+  puzzles: ChessPuzzle[],
+  timeLimit: number = ROUND_TIME_LIMIT,
+): number {
+  let cumulative = 0;
+  let solved = 0;
+  for (const puzzle of puzzles) {
+    cumulative += puzzle.opponent.solveTime;
+    if (cumulative > timeLimit) break;
+    solved++;
+  }
+  return solved;
+}
+
+/**
+ * Determine the blitz duel result by comparing puzzles solved.
+ */
+export function getBlitzDuelResult(
+  playerSolved: number,
+  opponentSolved: number,
+  solvedPuzzles: ChessPuzzle[],
 ): DuelResultData {
-  const won = playerTime <= opponentTime;
-  const timeDifference = Math.abs(playerTime - opponentTime);
-  const scoreGained = calculateScore(basePoints, timeLimit, playerTime);
+  const won = playerSolved > opponentSolved;
+  const difference = Math.abs(playerSolved - opponentSolved);
+  const totalPoints = calculateTotalPoints(solvedPuzzles);
 
   return {
-    playerTime,
-    opponentTime,
+    playerSolved,
+    opponentSolved,
     won,
-    timeDifference,
-    scoreGained,
+    difference,
+    totalPoints,
   };
 }

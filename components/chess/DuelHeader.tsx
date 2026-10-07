@@ -10,6 +10,7 @@ interface DuelHeaderProps {
   timerRunning: boolean;
   frozenTime?: number;
   onTick?: (elapsed: number) => void;
+  countdownFrom?: number;
 }
 
 export default function DuelHeader({
@@ -18,6 +19,7 @@ export default function DuelHeader({
   timerRunning,
   frozenTime,
   onTick,
+  countdownFrom,
 }: DuelHeaderProps) {
   return (
     <div className="duel-header" id="duel-header">
@@ -26,7 +28,10 @@ export default function DuelHeader({
         isRunning={timerRunning}
         frozenTime={frozenTime}
         onTick={onTick}
+        countdownFrom={countdownFrom}
+        player1={player1.score}
       />
+      
       <PlayerCard player={player2} side="right" />
     </div>
   );
